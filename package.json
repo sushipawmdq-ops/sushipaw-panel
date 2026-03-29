@@ -1,0 +1,12 @@
+{
+  "name": "sushipaw-panel",
+  "version": "1.0.0",
+  "description": "Panel de pedidos Sushi Paw",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}

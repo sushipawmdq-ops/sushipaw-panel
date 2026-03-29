@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Sushi Paw — Panel de Cocina</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F4F4F0;min-height:100vh}
+  .app{padding:12px;max-width:500px;margin:0 auto}
+
+  /* TOPBAR */
+  .topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#1A1A2E;border-radius:12px;margin-bottom:12px}
+  .topbar-logo{font-size:16px;font-weight:600;color:#fff}
+  .topbar-sub{font-size:11px;color:#9999BB;margin-top:2px}
+  .badge{background:#E24B4A;color:#fff;font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px}
+
+  /* STATS */
+  .stats{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:12px}
+  .stat{background:#fff;border-radius:10px;padding:10px 8px;text-align:center;border:0.5px solid #E0E0D8}
+  .stat-n{font-size:20px;font-weight:600;color:#1A1A2E}
+  .stat-l{font-size:10px;color:#888;margin-top:2px}
+
+  /* BOTÓN NUEVO */
+  .btn-nuevo{width:100%;padding:12px;border-radius:12px;border:1.5px dashed #C0C0B8;background:#fff;color:#666;font-size:14px;cursor:pointer;margin-bottom:12px;transition:all .15s}
+  .btn-nuevo:hover{border-color:#1A1A2E;color:#1A1A2E}
+
+  /* TOAST */
+  .toast{background:#D4EDDA;border:0.5px solid #3B6D11;color:#1B5E20;border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:10px;display:none;font-weight:500}
+
+  /* MODAL */
+  .modal-overlay{display:none;background:rgba(0,0,0,0.5);border-radius:12px;padding:16px;margin-bottom:12px}
+  .modal{background:#fff;border-radius:12px;padding:18px}
+  .modal h3{font-size:15px;font-weight:600;color:#1A1A2E;margin-bottom:14px}
+  .field{margin-bottom:12px}
+  .field label{font-size:12px;color:#666;display:block;margin-bottom:5px;font-weight:500}
+  .field input,.field textarea{width:100%;font-size:14px;border-radius:8px;border:1px solid #E0E0D8;padding:9px 12px;background:#FAFAF8;color:#1A1A2E;outline:none}
+  .field input:focus,.field textarea:focus{border-color:#1A1A2E}
+  .field textarea{resize:vertical;min-height:80px}
+  .modal-actions{display:flex;gap:8px;margin-top:14px}
+
+  /* CARDS */
+  .card{background:#fff;border-radius:12px;border:0.5px solid #E0E0D8;padding:14px 16px;margin-bottom:10px;transition:border-color .15s}
+  .card-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+  .card-id{font-size:14px;font-weight:600;color:#1A1A2E}
+  .card-hora{font-size:11px;color:#999}
+  .pill{font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px}
+  .pill-nuevo{background:#FCEBEB;color:#A32D2D}
+  .pill-prep{background:#FFF3CD;color:#856404}
+  .pill-delivery{background:#D1ECF1;color:#0F6674}
+  .pill-listo{background:#D4EDDA;color:#1B5E20}
+
+  /* CLIENTE BLOCK */
+  .cliente-block{background:#FAFAF8;border-radius:8px;padding:10px 12px;margin-bottom:10px}
+  .cliente-row{display:flex;justify-content:space-between;align-items:flex-start;padding:3px 0}
+  .cliente-label{font-size:11px;color:#999;font-weight:500;min-width:70px}
+  .cliente-val{font-size:12px;color:#1A1A2E;font-weight:500;text-align:right;flex:1}
+  .maps-btn{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:#185FA5;text-decoration:none;padding:5px 10px;border-radius:8px;border:0.5px solid #B5D4F4;background:#E6F1FB;margin-top:6px;font-weight:500}
+  .maps-btn:hover{background:#B5D4F4}
+  .maps-btn svg{width:13px;height:13px;flex-shrink:0}
+
+  /* DIVIDER */
+  .divider{height:0.5px;background:#E8E8E0;margin:10px 0}
+
+  /* ITEMS */
+  .items{font-size:13px;color:#1A1A2E;line-height:1.6;margin-bottom:6px;white-space:pre-line}
+  .total{font-size:15px;font-weight:700;color:#1A1A2E;margin-bottom:12px}
+
+  /* ACCIONES */
+  .acciones{display:flex;gap:6px;flex-wrap:wrap}
+  .btn{font-size:12px;font-weight:600;padding:7px 13px;border-radius:8px;border:none;cursor:pointer;transition:opacity .15s}
+  .btn:hover{opacity:.85}
+  .btn:active{opacity:.7}
+  .btn-verde{background:#D4EDDA;color:#1B5E20}
+  .btn-naranja{background:#FFF3CD;color:#856404}
+  .btn-azul{background:#D1ECF1;color:#0F6674}
+  .btn-rojo{background:#FCEBEB;color:#A32D2D}
+  .btn-gris{background:#F0F0EA;color:#555}
+  .btn-sm{font-size:11px;padding:5px 10px}
+
+  /* EMPTY */
+  .empty{text-align:center;padding:40px 20px;color:#999;font-size:14px}
+  .empty-icon{font-size:32px;margin-bottom:8px}
+
+  /* SECCION */
+  .seccion-titulo{font-size:11px;font-weight:600;color:#999;text-transform:uppercase;letter-spacing:.06em;margin:16px 0 8px}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="topbar">
+    <div>
+      <div class="topbar-logo">Sushi Paw</div>
+      <div class="topbar-sub" id="fecha-hora">Cargando...</div>
+    </div>
+    <span class="badge" id="badge-nuevos">0</span>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="stat-n" id="cnt-nuevo">0</div><div class="stat-l">Nuevos</div></div>
+    <div class="stat"><div class="stat-n" id="cnt-prep">0</div><div class="stat-l">En prep.</div></div>
+    <div class="stat"><div class="stat-n" id="cnt-delivery">0</div><div class="stat-l">En camino</div></div>
+    <div class="stat"><div class="stat-n" id="cnt-listo">0</div><div class="stat-l">Entregados</div></div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <button class="btn-nuevo" onclick="abrirModal()">+ Nuevo pedido</button>
+
+  <div class="modal-overlay" id="modal">
+    <div class="modal">
+      <h3>Nuevo pedido</h3>
+      <div class="field"><label>Nombre del cliente</label><input id="f-nombre" type="text" placeholder="Ej: Martín García" autocomplete="off"></div>
+      <div class="field"><label>Teléfono / WhatsApp</label><input id="f-tel" type="tel" placeholder="+54 223 555 1234"></div>
+      <div class="field"><label>Dirección de entrega</label><input id="f-dir" type="text" placeholder="Ej: Av. Colón 1820"></div>
+      <div class="field"><label>Productos (uno por línea)</label><textarea id="f-items" placeholder="2x Roll New York&#10;1x Yakimeshi Pollo&#10;1x Onigiri Mar Ahumado"></textarea></div>
+      <div class="field"><label>Total ($)</label><input id="f-total" type="number" placeholder="Ej: 32000"></div>
+      <div class="modal-actions">
+        <button class="btn btn-verde" style="flex:1;padding:10px" onclick="crearPedido()">Confirmar pedido</button>
+        <button class="btn btn-gris" style="padding:10px 16px" onclick="cerrarModal()">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="lista"></div>
+
+</div>
+
+<script>
+const LOCAL = 'Miguel Sagastizabal 4640, Mar del Plata, Argentina';
+const KEY = 'sushipaw_pedidos';
+let contador;
+let pedidos = [];
+
+function cargarDatos() {
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (raw) {
+      const data = JSON.parse(raw);
+      pedidos = data.pedidos || [];
+      contador = data.contador || 1;
+    } else {
+      pedidos = [];
+      contador = 1;
+    }
+  } catch(e) {
+    pedidos = [];
+    contador = 1;
+  }
+}
+
+function guardarDatos() {
+  localStorage.setItem(KEY, JSON.stringify({ pedidos, contador }));
+}
+
+function horaActual(offsetMin) {
+  const d = new Date(Date.now() + (offsetMin||0) * 60000);
+  return d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0');
+}
+
+function actualizarReloj() {
+  const d = new Date();
+  const dias = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  const meses = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  document.getElementById('fecha-hora').textContent =
+    dias[d.getDay()] + ' ' + d.getDate() + ' ' + meses[d.getMonth()] + ' · ' + horaActual();
+}
+
+function mapsUrl(dir) {
+  return 'https://www.google.com/maps/dir/?api=1&origin=' +
+    encodeURIComponent(LOCAL) + '&destination=' +
+    encodeURIComponent(dir + ', Mar del Plata, Argentina') + '&travelmode=driving';
+}
+
+function pill(estado) {
+  const m = {
+    nuevo: ['pill-nuevo','Nuevo'],
+    preparacion: ['pill-prep','En preparación'],
+    delivery: ['pill-delivery','En camino'],
+    listo: ['pill-listo','Entregado']
+  };
+  const [cls, txt] = m[estado] || ['',''];
+  return `<span class="pill ${cls}">${txt}</span>`;
+}
+
+function acciones(p) {
+  const id = p.id;
+  const pdf = `<button class="btn btn-gris btn-sm" onclick="generarPDF('${id}')">Descargar PDF</button>`;
+  if (p.estado === 'nuevo') return `
+    <button class="btn btn-naranja" onclick="setEstado('${id}','preparacion')">Iniciar preparación</button>
+    ${pdf}
+    <button class="btn btn-rojo btn-sm" onclick="setEstado('${id}','cancelado')">Cancelar</button>`;
+  if (p.estado === 'preparacion') return `
+    <button class="btn btn-azul" onclick="setEstado('${id}','delivery')">Marcar en camino</button>
+    ${pdf}`;
+  if (p.estado === 'delivery') return `
+    <button class="btn btn-verde" onclick="setEstado('${id}','listo')">Marcar entregado</button>
+    ${pdf}`;
+  return pdf;
+}
+
+function render() {
+  const orden = ['nuevo','preparacion','delivery','listo'];
+  const activos = pedidos
+    .filter(p => p.estado !== 'cancelado')
+    .sort((a,b) => orden.indexOf(a.estado) - orden.indexOf(b.estado));
+
+  let cn=0, cp=0, cd=0, cl=0;
+  activos.forEach(p => {
+    if(p.estado==='nuevo') cn++;
+    if(p.estado==='preparacion') cp++;
+    if(p.estado==='delivery') cd++;
+    if(p.estado==='listo') cl++;
+  });
+
+  document.getElementById('cnt-nuevo').textContent = cn;
+  document.getElementById('cnt-prep').textContent = cp;
+  document.getElementById('cnt-delivery').textContent = cd;
+  document.getElementById('cnt-listo').textContent = cl;
+  document.getElementById('badge-nuevos').textContent = cn;
+
+  if (activos.length === 0) {
+    document.getElementById('lista').innerHTML =
+      '<div class="empty"><div class="empty-icon">🍣</div>No hay pedidos activos</div>';
+    return;
+  }
+
+  let html = '';
+  activos.forEach(p => {
+    html += `
+    <div class="card" id="card-${p.id}">
+      <div class="card-head">
+        <span class="card-id">${p.id}</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="card-hora">${p.hora}</span>
+          ${pill(p.estado)}
+        </div>
+      </div>
+      <div class="cliente-block">
+        <div class="cliente-row"><span class="cliente-label">Cliente</span><span class="cliente-val">${p.nombre}</span></div>
+        <div class="cliente-row"><span class="cliente-label">Teléfono</span><span class="cliente-val">${p.tel}</span></div>
+        <div class="cliente-row"><span class="cliente-label">Dirección</span><span class="cliente-val">${p.dir}</span></div>
+        <a class="maps-btn" href="${mapsUrl(p.dir)}" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#185FA5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+          Ver ruta en Maps
+        </a>
+      </div>
+      <div class="divider"></div>
+      <div class="items">${p.items}</div>
+      <div class="total">Total: $${Number(p.total).toLocaleString('es-AR')}</div>
+      <div class="acciones">${acciones(p)}</div>
+    </div>`;
+  });
+
+  document.getElementById('lista').innerHTML = html;
+}
+
+function setEstado(id, nuevo) {
+  const p = pedidos.find(x => x.id === id);
+  if (!p) return;
+  p.estado = nuevo;
+  guardarDatos();
+  const msgs = {
+    preparacion: 'Preparación iniciada.',
+    delivery: 'Pedido en camino — notificar al cliente por WhatsApp.',
+    listo: 'Pedido entregado correctamente.',
+    cancelado: 'Pedido cancelado.'
+  };
+  toast(msgs[nuevo] || 'Estado actualizado.');
+  render();
+}
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.display = 'block';
+  setTimeout(() => t.style.display = 'none', 3000);
+}
+
+function abrirModal() {
+  document.getElementById('modal').style.display = 'block';
+  ['f-nombre','f-tel','f-dir','f-items','f-total'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('f-nombre').focus();
+}
+
+function cerrarModal() {
+  document.getElementById('modal').style.display = 'none';
+}
+
+function crearPedido() {
+  const nombre = document.getElementById('f-nombre').value.trim();
+  const tel = document.getElementById('f-tel').value.trim();
+  const dir = document.getElementById('f-dir').value.trim();
+  const items = document.getElementById('f-items').value.trim();
+  const total = document.getElementById('f-total').value || 0;
+
+  if (!nombre || !dir || !items) {
+    toast('Completá nombre, dirección y productos.');
+    return;
+  }
+
+  const id = '#' + String(contador).padStart(3, '0');
+  contador++;
+  pedidos.unshift({ id, nombre, tel: tel||'—', dir, items, total, hora: horaActual(), estado: 'nuevo' });
+  guardarDatos();
+  cerrarModal();
+  toast('Pedido ' + id + ' creado.');
+  render();
+}
+
+function generarPDF(id) {
+  const p = pedidos.find(x => x.id === id);
+  if (!p) return;
+  if (typeof window.jspdf === 'undefined') { toast('Cargando PDF...'); return; }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: 'a5', orientation: 'portrait' });
+  const W = 148;
+  let y = 14;
+
+  doc.setFillColor(26, 26, 46);
+  doc.rect(0, 0, W, 24, 'F');
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(15); doc.setFont('helvetica','bold');
+  doc.text('SUSHI PAW', 10, 11);
+  doc.setFontSize(8); doc.setFont('helvetica','normal');
+  doc.text('Miguel Sagastizabal 4640, Mar del Plata', 10, 17);
+  doc.text('WhatsApp: +54 223 677 2937', 10, 21);
+  y = 32;
+
+  doc.setTextColor(30,30,30);
+  doc.setFontSize(12); doc.setFont('helvetica','bold');
+  doc.text('COMPROBANTE DE PEDIDO', 10, y); y += 6;
+  doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(120,120,120);
+  const estados = {nuevo:'Nuevo',preparacion:'En preparación',delivery:'En camino',listo:'Entregado'};
+  doc.text(`${p.id}  ·  ${p.hora}  ·  ${estados[p.estado]||p.estado}`, 10, y); y += 8;
+
+  doc.setDrawColor(220,220,215); doc.line(10, y, W-10, y); y += 6;
+
+  doc.setTextColor(30,30,30); doc.setFontSize(9); doc.setFont('helvetica','bold');
+  doc.text('DATOS DEL CLIENTE', 10, y); y += 5;
+  doc.setFont('helvetica','normal'); doc.setFontSize(9);
+  [['Nombre', p.nombre], ['Teléfono', p.tel], ['Dirección', p.dir]].forEach(([lbl, val]) => {
+    doc.setTextColor(130,130,130); doc.text(lbl + ':', 10, y);
+    doc.setTextColor(30,30,30);
+    const lines = doc.splitTextToSize(val, W - 42);
+    doc.text(lines, 40, y);
+    y += 5 * lines.length;
+  });
+  y += 2; doc.line(10, y, W-10, y); y += 6;
+
+  doc.setTextColor(30,30,30); doc.setFontSize(9); doc.setFont('helvetica','bold');
+  doc.text('DETALLE DEL PEDIDO', 10, y); y += 5;
+  doc.setFont('helvetica','normal');
+  p.items.split('\n').forEach(item => {
+    if (item.trim()) {
+      const lines = doc.splitTextToSize('· ' + item.trim(), W - 20);
+      doc.setTextColor(30,30,30);
+      doc.text(lines, 10, y);
+      y += 5 * lines.length;
+    }
+  });
+  y += 3; doc.line(10, y, W-10, y); y += 6;
+
+  doc.setFontSize(12); doc.setFont('helvetica','bold'); doc.setTextColor(30,30,30);
+  doc.text('TOTAL', 10, y);
+  doc.text('$' + Number(p.total).toLocaleString('es-AR'), W-10, y, { align: 'right' });
+  y += 10;
+
+  doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(160,160,160);
+  doc.text('Ruta: ' + mapsUrl(p.dir).substring(0, 80), 10, y, { maxWidth: W-20 });
+
+  doc.save('SushiPaw_' + p.id.replace('#','') + '.pdf');
+  toast('PDF descargado.');
+}
+
+cargarDatos();
+actualizarReloj();
+setInterval(actualizarReloj, 30000);
+render();
+</script>
+</body>
+</html>
